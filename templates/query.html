@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <title>查詢消費資料</title>
+</head>
+
+<body>
+
+    <h1>查詢消費資料</h1>
+
+    <form action="/query" method="POST">
+
+        <p>
+            日期：
+            <input type="text"
+                   name="日期"
+                   placeholder="例如 2026-09-05">
+        </p>
+
+        <p>
+            交通費：
+            <input type="number"
+                   name="交通費">
+        </p>
+
+        <p>
+            電話費：
+            <input type="number"
+                   name="電話費">
+        </p>
+
+        <p>
+            房貸：
+            <input type="number"
+                   name="房貸">
+        </p>
+
+        <p>
+            用餐：
+            <input type="number"
+                   name="用餐">
+        </p>
+
+        <p>
+            保險：
+            <input type="number"
+                   name="保險">
+        </p>
+
+        <p>
+            醫療：
+            <input type="number"
+                   name="醫療">
+        </p>
+
+        <p>
+            水費：
+            <input type="number"
+                   name="水費">
+        </p>
+
+        <p>
+            電費：
+            <input type="number"
+                   name="電費">
+        </p>
+
+        <p>
+            瓦斯費：
+            <input type="number"
+                   name="瓦斯費">
+        </p>
+
+        <p>
+            其他：
+            <input type="number"
+                   name="其他">
+        </p>
+
+        <button type="submit">查詢</button>
+
+    </form>
+
+    <br>
+
+    <a href="/">
+        <button type="button">回首頁</button>
+    </a>
+
+    {% if searched %}
+
+        <hr>
+
+        <h2>查詢結果</h2>
+
+        {% if rows %}
+
+            <table border="1" cellpadding="8">
+
+                <tr>
+                    <th>日期</th>
+                    <th>交通費</th>
+                    <th>電話費</th>
+                    <th>房貸</th>
+                    <th>用餐</th>
+                    <th>保險</th>
+                    <th>醫療</th>
+                    <th>水費</th>
+                    <th>電費</th>
+                    <th>瓦斯費</th>
+                    <th>其他</th>
+                </tr>
+
+                {% for row in rows %}
+
+                <tr>
+                    {% for value in row %}
+                        <td>{{ value }}</td>
+                    {% endfor %}
+                </tr>
+
+                {% endfor %}
+
+            </table>
+
+        {% else %}
+
+            <p style="color:red;">
+                查無資料
+            </p>
+
+        {% endif %}
+
+    {% endif %}
+
+</body>
+
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <title>訊息</title>
+</head>
+
+<body>
+
+    {% if message_type == "success" %}
+
+        <h1 style="color: green;">
+            {{ message }}
+        </h1>
+
+    {% else %}
+
+        <h1 style="color: red;">
+            {{ message }}
+        </h1>
+
+    {% endif %}
+
+    <br>
+
+    <a href="/">
+        <button>
+            回首頁
+        </button>
+    </a>
+
+</body>
+
+</html>

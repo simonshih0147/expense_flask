@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <title>新增消費資料</title>
+</head>
+
+<body>
+
+    <h1>新增消費資料</h1>
+
+    <form action="/insert" method="POST">
+
+        <p>
+            日期：
+            <input type="datetime-local"
+                   name="日期"
+                   required>
+        </p>
+
+        <p>
+            交通費：
+            <input type="number"
+                   name="交通費"
+                   value="0"
+                   required>
+        </p>
+
+        <p>
+            電話費：
+            <input type="number"
+                   name="電話費"
+                   value="0"
+                   required>
+        </p>
+
+        <p>
+            房貸：
+            <input type="number"
+                   name="房貸"
+                   value="0"
+                   required>
+        </p>
+
+        <p>
+            用餐：
+            <input type="number"
+                   name="用餐"
+                   value="0"
+                   required>
+        </p>
+
+        <p>
+            保險：
+            <input type="number"
+                   name="保險"
+                   value="0"
+                   required>
+        </p>
+
+        <p>
+            醫療：
+            <input type="number"
+                   name="醫療"
+                   value="0"
+                   required>
+        </p>
+
+        <p>
+            水費：
+            <input type="number"
+                   name="水費"
+                   value="0"
+                   required>
+        </p>
+
+        <p>
+            電費：
+            <input type="number"
+                   name="電費"
+                   value="0"
+                   required>
+        </p>
+
+        <p>
+            瓦斯費：
+            <input type="number"
+                   name="瓦斯費"
+                   value="0"
+                   required>
+        </p>
+
+        <p>
+            其他：
+            <input type="number"
+                   name="其他"
+                   value="0"
+                   required>
+        </p>
+
+        <br>
+
+        <button type="submit">
+            送出
+        </button>
+
+    </form>
+
+    <br>
+
+    <a href="/">
+        <button type="button">
+            回首頁
+        </button>
+    </a>
+
+</body>
+
+</html>
