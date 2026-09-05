@@ -40,8 +40,10 @@ def insert_page():
 @app.route("/insert", methods=["POST"])
 def insert():
 
-    try:
+    conn = None
+    cursor = None
 
+    try:
         日期 = request.form["日期"]
         交通費 = request.form["交通費"]
         電話費 = request.form["電話費"]
@@ -53,42 +55,41 @@ def insert():
         電費 = request.form["電費"]
         瓦斯費 = request.form["瓦斯費"]
         其他 = request.form["其他"]
+        加油費 = request.form["加油費"]
+        稅費 = request.form["稅費"]
+        有線電視 = request.form["有線電視"]
+        照顧家人 = request.form["照顧家人"]
+        備註 = request.form.get("備註", "")
 
-        # 建立資料庫連線
         conn = get_db_connection()
-
-        # 建立 Cursor
         cursor = conn.cursor()
 
-        # INSERT SQL
         sql = """
-        INSERT INTO expense_data
+        INSERT INTO `expense_data`
         (
-            日期,
-            交通費,
-            電話費,
-            房貸,
-            用餐,
-            保險,
-            醫療,
-            水費,
-            電費,
-            瓦斯費,
-            其他
+            `日期`,
+            `交通費`,
+            `電話費`,
+            `房貸`,
+            `用餐`,
+            `保險`,
+            `醫療`,
+            `水費`,
+            `電費`,
+            `瓦斯費`,
+            `其他`,
+            `加油費`,
+            `稅費`,
+            `有線電視`,
+            `照顧家人`,
+            `備註`
         )
         VALUES
         (
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s
+            %s, %s, %s, %s,
+            %s, %s, %s, %s,
+            %s, %s, %s, %s,
+            %s, %s, %s, %s
         )
         """
 
@@ -103,20 +104,17 @@ def insert():
             水費,
             電費,
             瓦斯費,
-            其他
+            其他,
+            加油費,
+            稅費,
+            有線電視,
+            照顧家人,
+            備註
         )
 
-        # 執行 INSERT
         cursor.execute(sql, values)
-
-        # 確認寫入資料庫
         conn.commit()
 
-        # 關閉
-        cursor.close()
-        conn.close()
-
-        # 顯示成功訊息
         return render_template(
             "message.html",
             message="新增成功",
@@ -125,12 +123,19 @@ def insert():
 
     except Exception as e:
 
-        # 顯示錯誤訊息
         return render_template(
             "message.html",
             message="新增失敗：" + str(e),
             message_type="error"
         )
+
+    finally:
+
+        if cursor is not None:
+            cursor.close()
+
+        if conn is not None and conn.is_connected():
+            conn.close()
 
 # ==============================
 # 查詢頁面
@@ -159,12 +164,18 @@ def query():
             "水費",
             "電費",
             "瓦斯費",
-            "其他"
+            "其他",
+            "加油費",
+            "稅費",
+            "有線電視",
+            "照顧家人",
+            "備註"
         ]
 
         sql = """
         SELECT 日期, 交通費, 電話費, 房貸, 用餐,
-               保險, 醫療, 水費, 電費, 瓦斯費, 其他
+               保險, 醫療, 水費, 電費, 瓦斯費, 其他,
+               加油費 , 稅費 , 有線電視 , 照顧家人 , 備註
         FROM expense_data
         """
 
@@ -184,6 +195,12 @@ def query():
                     )
 
                     values.append(value + "%")
+                elif field == "備註":
+
+                    conditions.append(
+                        "`備註` LIKE %s"
+                    )
+                    values.append("%" + value + "%")
 
                 else:
 

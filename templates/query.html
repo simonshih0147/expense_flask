@@ -78,7 +78,32 @@
             <input type="number"
                    name="其他">
         </p>
+        <p>
+            加油費：
+             <input type="number" name="加油費">
+       </p>
 
+        <p>
+            稅費：
+            <input type="number" name="稅費">
+        </p>
+
+        <p>
+            有線電視：
+            <input type="number" name="有線電視">
+        </p>
+
+        <p>
+            照顧家人：
+            <input type="number" name="照顧家人">
+        </p>
+
+        <p>
+            備註：
+            <input type="text"
+                name="備註"
+                placeholder="可輸入部分文字">
+        </p>
         <button type="submit">查詢</button>
 
     </form>
@@ -111,13 +136,24 @@
                     <th>電費</th>
                     <th>瓦斯費</th>
                     <th>其他</th>
+                    <th>加油費</th>
+                    <th>稅費</th>
+                    <th>有線電視</th>
+                    <th>照顧家人</th>
+                    <th>備註</th>
                 </tr>
 
                 {% for row in rows %}
 
                 <tr>
                     {% for value in row %}
-                        <td>{{ value }}</td>
+
+                        {% if value is none %}
+                            <td></td>
+                        {% else %}
+                            <td>{{ value }}</td>
+                        {% endif %}
+
                     {% endfor %}
                 </tr>
 
