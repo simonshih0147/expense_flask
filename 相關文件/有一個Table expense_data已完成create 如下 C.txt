@@ -1,0 +1,22 @@
+有一個Table expense_data已完成create 如下: CREATE TABLE expense_data (日期 DATETIME NOT NULL PRIMARY KEY, 
+ 交通費 int NOT NULL, 
+ 電話費 int NOT NULL,
+ 房貸   int NOT NULL,
+ 用餐   int NOT NULL,
+ 保險   int NOT NULL,
+ 醫療   int NOT NULL,
+ 水費   int NOT NULL,
+ 電費   int NOT NULL,
+ 瓦斯費 int NOT NULL,
+ 其他   int NOT NULL, ); 
+
+evpense_data 所屬的資料庫是MyDB03，使用MySQL DB Server，帳號 root，密碼mysql12345。 編寫一個Python Flask Web Application，具有<spec>的規格。 
+‹spec> 
+0. Homepage index.html 有2個按鈕，"新增"與"查詢"，index.html使用靜態網頁,可加css讓頁面票亮。 
+1."新增"（insert into）用的輸入表單，使用靜態網頁。 
+2. 按送出之後，資料傳送至 /insert，只接收 POST request method 
+3. /insert 內完成 expense_data Table的INSERT INTO動作 
+4. 若新增成功，顯示“新增成功"的Message，否則顯示錯誤訊息。訊息網頁都要有“回首頁“按鈕。 
+5."查詢"按鈕按下後，可以輸入查詢字串，每個欄位都可以獨立查詢，如果輸入多個欄位做查詢，表示是條件的AND。 
+6. 查詢結果使用動態網頁。 
+</spec>

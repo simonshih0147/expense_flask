@@ -3,126 +3,153 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
     <title>查詢消費資料</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='form.css') }}">
 </head>
 
 <body>
 
-    <h1>查詢消費資料</h1>
+<div class="page-container">
 
-    <form action="/query" method="POST">
+    <div class="form-card">
 
-        <p>
-            日期：
-            <input type="text"
-                   name="日期"
-                   placeholder="例如 2026-09-05">
-        </p>
+        <h1 class="page-title">
+            查詢消費資料
+        </h1>
 
-        <p>
-            交通費：
-            <input type="number"
-                   name="交通費">
-        </p>
+        <div class="page-subtitle">
+            Personal Expense Search
+        </div>
 
-        <p>
-            電話費：
-            <input type="number"
-                   name="電話費">
-        </p>
+        <form action="/query" method="POST">
 
-        <p>
-            房貸：
-            <input type="number"
-                   name="房貸">
-        </p>
+            <div class="form-grid">
 
-        <p>
-            用餐：
-            <input type="number"
-                   name="用餐">
-        </p>
+                <div class="form-group full-width">
+                    <label>日期</label>
 
-        <p>
-            保險：
-            <input type="number"
-                   name="保險">
-        </p>
+                    <input type="text"
+                           name="日期"
+                           placeholder="例如 2026-09-05">
+                </div>
 
-        <p>
-            醫療：
-            <input type="number"
-                   name="醫療">
-        </p>
+                <div class="form-group">
+                    <label>交通費</label>
+                    <input type="number" name="交通費">
+                </div>
 
-        <p>
-            水費：
-            <input type="number"
-                   name="水費">
-        </p>
+                <div class="form-group">
+                    <label>電話費</label>
+                    <input type="number" name="電話費">
+                </div>
 
-        <p>
-            電費：
-            <input type="number"
-                   name="電費">
-        </p>
+                <div class="form-group">
+                    <label>房貸</label>
+                    <input type="number" name="房貸">
+                </div>
 
-        <p>
-            瓦斯費：
-            <input type="number"
-                   name="瓦斯費">
-        </p>
+                <div class="form-group">
+                    <label>用餐</label>
+                    <input type="number" name="用餐">
+                </div>
 
-        <p>
-            其他：
-            <input type="number"
-                   name="其他">
-        </p>
-        <p>
-            加油費：
-             <input type="number" name="加油費">
-       </p>
+                <div class="form-group">
+                    <label>保險</label>
+                    <input type="number" name="保險">
+                </div>
 
-        <p>
-            稅費：
-            <input type="number" name="稅費">
-        </p>
+                <div class="form-group">
+                    <label>醫療</label>
+                    <input type="number" name="醫療">
+                </div>
 
-        <p>
-            有線電視：
-            <input type="number" name="有線電視">
-        </p>
+                <div class="form-group">
+                    <label>水費</label>
+                    <input type="number" name="水費">
+                </div>
 
-        <p>
-            照顧家人：
-            <input type="number" name="照顧家人">
-        </p>
+                <div class="form-group">
+                    <label>電費</label>
+                    <input type="number" name="電費">
+                </div>
 
-        <p>
-            備註：
-            <input type="text"
-                name="備註"
-                placeholder="可輸入部分文字">
-        </p>
-        <button type="submit">查詢</button>
+                <div class="form-group">
+                    <label>瓦斯費</label>
+                    <input type="number" name="瓦斯費">
+                </div>
 
-    </form>
+                <div class="form-group">
+                    <label>其他</label>
+                    <input type="number" name="其他">
+                </div>
 
-    <br>
+                <div class="form-group">
+                    <label>加油費</label>
+                    <input type="number" name="加油費">
+                </div>
 
-    <a href="/">
-        <button type="button">回首頁</button>
-    </a>
+                <div class="form-group">
+                    <label>稅費</label>
+                    <input type="number" name="稅費">
+                </div>
+
+                <div class="form-group">
+                    <label>有線電視</label>
+                    <input type="number" name="有線電視">
+                </div>
+
+                <div class="form-group">
+                    <label>照顧家人</label>
+                    <input type="number" name="照顧家人">
+                </div>
+
+                <div class="form-group full-width">
+                    <label>備註</label>
+
+                    <input type="text"
+                           name="備註"
+                           placeholder="可輸入部分關鍵字">
+                </div>
+
+            </div>
+
+            <div class="button-area">
+
+                <button type="submit"
+                        class="btn btn-search">
+                    開始查詢
+                </button>
+
+                <a href="/"
+                   class="btn btn-secondary">
+                    回首頁
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
 
     {% if searched %}
 
-        <hr>
+    <div class="result-card">
 
-        <h2>查詢結果</h2>
+        <h2 class="result-title">
+            查詢結果
+        </h2>
 
         {% if rows %}
 
-            <table border="1" cellpadding="8">
+        <table>
+
+            <thead>
 
                 <tr>
                     <th>日期</th>
@@ -143,9 +170,14 @@
                     <th>備註</th>
                 </tr>
 
+            </thead>
+
+            <tbody>
+
                 {% for row in rows %}
 
                 <tr>
+
                     {% for value in row %}
 
                         {% if value is none %}
@@ -155,21 +187,28 @@
                         {% endif %}
 
                     {% endfor %}
+
                 </tr>
 
                 {% endfor %}
 
-            </table>
+            </tbody>
+
+        </table>
 
         {% else %}
 
-            <p style="color:red;">
-                查無資料
-            </p>
+        <div class="no-data">
+            查無符合條件的資料
+        </div>
 
         {% endif %}
 
+    </div>
+
     {% endif %}
+
+</div>
 
 </body>
 

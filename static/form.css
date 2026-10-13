@@ -1,0 +1,193 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Microsoft JhengHei", Arial, sans-serif;
+    background: #f3f6fa;
+    color: #263238;
+}
+
+.page-container {
+    width: 92%;
+    max-width: 900px;
+    margin: 45px auto;
+}
+
+.form-card {
+    background: white;
+    border-radius: 18px;
+    padding: 38px 48px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.10);
+}
+
+.page-title {
+    text-align: center;
+    font-size: 36px;
+    color: #1f3c5a;
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+
+.page-subtitle {
+    text-align: center;
+    color: #78909c;
+    font-size: 16px;
+    margin-bottom: 32px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 28px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+label {
+    margin-bottom: 7px;
+    font-size: 17px;
+    font-weight: bold;
+    color: #455a64;
+}
+
+input {
+    width: 100%;
+    height: 44px;
+    padding: 8px 12px;
+    font-size: 17px;
+    border: 1px solid #b0bec5;
+    border-radius: 8px;
+    outline: none;
+    transition: 0.2s;
+    background: #fff;
+}
+
+input:focus {
+    border-color: #1976d2;
+    box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.12);
+}
+
+.button-area {
+    margin-top: 34px;
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    min-width: 130px;
+    padding: 13px 25px;
+    border: none;
+    border-radius: 9px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: 0.2s;
+}
+
+.btn-primary {
+    background: #1976d2;
+    color: white;
+}
+
+.btn-search {
+    background: #2e7d32;
+    color: white;
+}
+
+.btn-secondary {
+    background: #607d8b;
+    color: white;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+}
+
+/* 查詢結果 */
+.result-card {
+    margin-top: 30px;
+    background: white;
+    padding: 25px;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    overflow-x: auto;
+}
+
+.result-title {
+    font-size: 25px;
+    color: #1f3c5a;
+    margin-top: 0;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1200px;
+}
+
+th {
+    background: #1976d2;
+    color: white;
+    padding: 12px 9px;
+    white-space: nowrap;
+}
+
+td {
+    padding: 10px 9px;
+    border-bottom: 1px solid #e0e0e0;
+    text-align: center;
+    white-space: nowrap;
+}
+
+tr:nth-child(even) {
+    background: #f7f9fc;
+}
+
+tr:hover {
+    background: #eaf3fb;
+}
+
+.no-data {
+    color: #c62828;
+    font-weight: bold;
+    text-align: center;
+    font-size: 18px;
+}
+
+@media (max-width: 750px) {
+    .page-container {
+        width: 95%;
+        margin: 20px auto;
+    }
+
+    .form-card {
+        padding: 25px 18px;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-group.full-width {
+        grid-column: auto;
+    }
+
+    .page-title {
+        font-size: 29px;
+    }
+}

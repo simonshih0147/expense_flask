@@ -3,25 +3,160 @@
 
 <head>
     <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
     <title>個人消費記帳系統</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Microsoft JhengHei", Arial, sans-serif;
+            background: #f3f6fa;
+            color: #263238;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 60px auto;
+        }
+
+        .main-card {
+            background: white;
+            border-radius: 18px;
+            padding: 55px 40px;
+            text-align: center;
+
+            box-shadow:
+                0 5px 20px rgba(0,0,0,0.10);
+        }
+
+        h1 {
+            margin: 0 0 15px 0;
+            font-size: 42px;
+            color: #1f3c5a;
+        }
+
+        .subtitle {
+            font-size: 20px;
+            color: #607d8b;
+            margin-bottom: 40px;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-block;
+
+            min-width: 150px;
+
+            padding: 16px 30px;
+
+            border-radius: 10px;
+
+            text-decoration: none;
+
+            font-size: 20px;
+
+            font-weight: bold;
+
+            border: none;
+
+            cursor: pointer;
+
+            transition: 0.2s;
+        }
+
+        .btn-primary {
+            background: #1976d2;
+            color: white;
+        }
+
+        .btn-success {
+            background: #2e7d32;
+            color: white;
+        }
+
+        .btn-dashboard {
+            background: #6a1b9a;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+
+            box-shadow:
+                0 4px 10px rgba(0,0,0,0.18);
+        }
+
+        @media (max-width: 700px) {
+
+            h1 {
+                font-size: 32px;
+            }
+
+            .main-card {
+                padding: 35px 20px;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+
+    </style>
+
 </head>
+
 
 <body>
 
-    <h1>個人消費記帳系統</h1>
+<div class="container">
 
-    <a href="/insert">
-        <button>新增</button>
-    </a>
+    <div class="main-card">
 
-    <a href="/query">
-        <button>查詢</button>
-    </a>
+        <h1>
+            個人消費記帳系統
+        </h1>
 
-   <a href="/dashboard">
-    <button>統計 Dashboard</button>
-    </a>
+        <div class="subtitle">
+            Personal Expense Management System
+        </div>
+
+        <div class="button-group">
+
+            <a href="/insert"
+               class="btn btn-primary">
+                新增
+            </a>
+
+            <a href="/query"
+               class="btn btn-success">
+                查詢
+            </a>
+
+            <a href="/dashboard"
+               class="btn btn-dashboard">
+                統計 Dashboard
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
 
 </body>
-
 </html>

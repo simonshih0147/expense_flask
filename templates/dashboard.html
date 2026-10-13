@@ -4,203 +4,647 @@
 <head>
     <meta charset="UTF-8">
 
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
     <title>個人消費統計 Dashboard</title>
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- 顯示數字用外掛 -->
+    <!-- Chart.js DataLabels -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-</head>
-
-<body>
-
-    <h1>個人消費統計 Dashboard</h1>
-
-    <hr>
-
-    <h2>本月總支出</h2>
-
-    {% if start_date and end_date %}
-
-    <p style="font-size:18px; color:#555;">
-        統計期間：
-        {{ start_date }}
-        ～
-        {{ end_date }}
-     </p>
-
-     {% endif %}
-
-    <h1 style="color: blue;">
-        NT$ {{ "{:,}".format(monthly_total) }}
-    </h1>
-
-    <hr>
-
-    <h2>本月各項支出比例</h2>
-
-    <div style="
-        width: 900px;
-        height: 600px;
-        margin: auto;
-    ">
-        <canvas id="expensePieChart"></canvas>
-    </div>
-    <hr>
-
-    <h2>每月支出趨勢</h2>
-
-    <div style="
-        width: 1000px;
-        height: 450px;
-        margin: auto;
-    ">
-        <canvas id="monthlyTrendChart"></canvas>
-    </div>
-    <br>
-    
-    <hr>
-
-    <h2>本月支出柏拉圖</h2>
-
-    <div style="
-        width: 1100px;
-        height: 500px;
-        margin: auto;
-    ">
-        <canvas id="paretoChart"></canvas>
-    </div>
-
-    <hr>
-
-    <h2>7、8、9 月累積支出柏拉圖</h2>
-
-    <p style="font-size:18px; color:#555;">
-        統計期間：
-        2026/07/01 ～ {{ end_date }}
-    </p>
-
-    <div style="
-        width: 1100px;
-        height: 520px;
-        margin: auto;
-    ">
-        <canvas id="threeMonthParetoChart"></canvas>
-    </div>
 
 
-    <hr>
+    <style>
 
-    <h2>全部期間支出柏拉圖</h2>
+        * {
+            box-sizing: border-box;
+        }
 
-    <p style="font-size:18px; color:#555;">
-        統計期間：
-        {{ all_start_date }} ～ {{ all_end_date }}
-    </p>
+        body {
+            margin: 0;
+            padding: 0;
 
-    <div style="
-        width: 1100px;
-        height: 520px;
-        margin: auto;
-    ">
-        <canvas id="allPeriodParetoChart"></canvas>
-    </div>
+            font-family:
+                "Microsoft JhengHei",
+                Arial,
+                sans-serif;
 
+            background: #f3f6fa;
 
-    <a href="/">
-        <button>回首頁</button>
-    </a>
-
-    
-
-<script>
-
-    const originalLabels =
-        {{ category_labels | tojson }};
-
-    const originalValues =
-        {{ category_values | tojson }};
+            color: #333;
+        }
 
 
-    // ========================================
-    // 只保留金額 > 0 的項目
-    // 並轉成 Number
-    // ========================================
-    const labels = [];
-    const values = [];
+        /* ==========================
+           Dashboard 主容器
+        ========================== */
 
-    for (let i = 0; i < originalLabels.length; i++) {
+        .dashboard-container {
+            width: 94%;
 
-        const amount = Number(originalValues[i]);
+            max-width: 1600px;
 
-        if (amount > 0) {
+            margin: 25px auto 60px auto;
+        }
 
-            labels.push(originalLabels[i]);
-            values.push(amount);
+
+        /* ==========================
+           主標題
+        ========================== */
+
+        .dashboard-title {
+
+            text-align: center;
+
+            font-size: 42px;
+
+            color: #1f3c5a;
+
+            margin-bottom: 30px;
 
         }
 
+
+        /* ==========================
+           卡片
+        ========================== */
+
+        .card {
+
+            background: white;
+
+            border-radius: 16px;
+
+            padding: 25px;
+
+            margin-bottom: 28px;
+
+            box-shadow:
+                0 4px 16px
+                rgba(0, 0, 0, 0.08);
+
+        }
+
+
+        /* ==========================
+           KPI
+        ========================== */
+
+        .kpi-card {
+
+            text-align: center;
+
+            padding-top: 28px;
+
+            padding-bottom: 28px;
+
+        }
+
+
+        .kpi-title {
+
+            font-size: 26px;
+
+            font-weight: bold;
+
+            color: #555;
+
+        }
+
+
+        .period-text {
+
+            margin-top: 10px;
+
+            font-size: 19px;
+
+            color: #777;
+
+        }
+
+
+        .kpi-value {
+
+            margin-top: 12px;
+
+            font-size: 52px;
+
+            font-weight: bold;
+
+            color: #1565c0;
+
+        }
+
+
+        /* ==========================
+           Chart 標題
+        ========================== */
+
+        .chart-title {
+
+            text-align: center;
+
+            font-size: 26px;
+
+            font-weight: bold;
+
+            color: #37474f;
+
+            margin-bottom: 15px;
+
+        }
+
+
+        .chart-period {
+
+            text-align: center;
+
+            color: #777;
+
+            margin-bottom: 15px;
+
+            font-size: 18px;
+
+        }
+
+
+        /* ==========================
+           兩欄
+        ========================== */
+
+        .grid-2 {
+
+            display: grid;
+
+            grid-template-columns:
+                1fr 1fr;
+
+            gap: 25px;
+
+        }
+
+
+        /* ==========================
+           圖表尺寸
+        ========================== */
+
+        .chart-box {
+
+            width: 100%;
+
+            height: 520px;
+
+        }
+
+
+        .pareto-box {
+
+            width: 100%;
+
+            height: 650px;
+
+        }
+
+
+        /* ==========================
+           回首頁
+        ========================== */
+
+        .button-area {
+
+            text-align: center;
+
+            margin-top: 30px;
+
+        }
+
+
+        .back-button {
+
+            display: inline-block;
+
+            padding: 13px 30px;
+
+            background: #1565c0;
+
+            color: white;
+
+            text-decoration: none;
+
+            border-radius: 8px;
+
+            font-size: 17px;
+
+            transition: 0.2s;
+
+        }
+
+
+        .back-button:hover {
+
+            background: #0d47a1;
+
+            transform: translateY(-1px);
+
+        }
+
+
+        /* ==========================
+           Responsive
+        ========================== */
+
+        @media (max-width: 1000px) {
+
+            .grid-2 {
+
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+
+            }
+
+            .chart-box {
+
+                height: 520px;
+
+            }
+
+        }
+
+
+        @media (max-width: 600px) {
+
+            .dashboard-title {
+
+                font-size: 27px;
+
+            }
+
+            .kpi-value {
+
+                font-size: 34px;
+
+            }
+
+            .card {
+
+                padding: 15px;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="dashboard-container">
+
+
+    <!-- ======================================
+         主標題
+    ======================================= -->
+
+    <h1 class="dashboard-title">
+        個人消費記帳及統計 Dashboard
+    </h1>
+
+
+
+    <!-- ======================================
+         本月總支出
+    ======================================= -->
+
+    <div class="card kpi-card">
+
+        <div class="kpi-title">
+            本月總支出
+        </div>
+
+        {% if start_date and end_date %}
+
+        <div class="period-text">
+
+            統計期間：
+
+            {{ start_date }}
+
+            ～
+
+            {{ end_date }}
+
+        </div>
+
+        {% endif %}
+
+
+        <div class="kpi-value">
+
+            NT$
+            {{ "{:,}".format(monthly_total) }}
+
+        </div>
+
+    </div>
+
+
+
+    <!-- ======================================
+         圓餅圖 + 每月趨勢
+    ======================================= -->
+
+    <div class="grid-2">
+
+
+        <!-- 圓餅圖 -->
+
+        <div class="card">
+
+            <div class="chart-title">
+                本月各項支出比例
+            </div>
+
+            <div class="chart-period">
+
+                {{ start_date }}
+                ～
+                {{ end_date }}
+
+            </div>
+
+            <div class="chart-box">
+
+                <canvas id="expensePieChart"></canvas>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- 趨勢圖 -->
+
+        <div class="card">
+
+            <div class="chart-title">
+                每月支出趨勢
+            </div>
+
+            <div class="chart-box">
+
+                <canvas id="monthlyTrendChart"></canvas>
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- ======================================
+         本月柏拉圖
+    ======================================= -->
+
+    <div class="card">
+
+        <div class="chart-title">
+            本月支出柏拉圖
+        </div>
+
+        <div class="chart-period">
+
+            {{ start_date }}
+            ～
+            {{ end_date }}
+
+        </div>
+
+        <div class="pareto-box">
+
+            <canvas id="currentParetoChart"></canvas>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- ======================================
+         7～9 月累積柏拉圖
+    ======================================= -->
+
+    <div class="card">
+
+        <div class="chart-title">
+            7～9 月累積支出柏拉圖
+        </div>
+
+        <div class="chart-period">
+
+            2026/07/01
+            ～
+            {{ end_date }}
+
+        </div>
+
+        <div class="pareto-box">
+
+            <canvas id="threeMonthParetoChart"></canvas>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- ======================================
+         全期間柏拉圖
+    ======================================= -->
+
+    <div class="card">
+
+        <div class="chart-title">
+            全期間支出柏拉圖
+        </div>
+
+        <div class="chart-period">
+
+            {{ all_start_date }}
+            ～
+            {{ all_end_date }}
+
+        </div>
+
+        <div class="pareto-box">
+
+            <canvas id="allPeriodParetoChart"></canvas>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- 回首頁 -->
+
+    <div class="button-area">
+
+        <a href="/"
+           class="back-button">
+
+            回首頁
+
+        </a>
+
+    </div>
+
+
+</div>
+
+
+
+<script>
+
+
+// ======================================================
+// Flask 資料
+// ======================================================
+
+const originalLabels =
+    {{ category_labels | tojson }};
+
+const originalValues =
+    {{ category_values | tojson }};
+
+const trendLabels =
+    {{ trend_labels | tojson }};
+
+const trendValues =
+    {{ trend_values | tojson }};
+
+const threeMonthValues =
+    {{ three_month_values | tojson }};
+
+const allPeriodValues =
+    {{ all_period_values | tojson }};
+
+
+Chart.register(ChartDataLabels);
+
+Chart.defaults.font.family =
+    "'Microsoft JhengHei', Arial, sans-serif";
+
+Chart.defaults.font.size = 16;
+
+Chart.defaults.color = "#333";
+
+// ======================================================
+// 圓餅圖資料
+// 只保留 > 0
+// ======================================================
+
+const pieLabels = [];
+
+const pieValues = [];
+
+
+for (
+    let i = 0;
+    i < originalLabels.length;
+    i++
+) {
+
+    const value =
+        Number(originalValues[i]);
+
+    if (value > 0) {
+
+        pieLabels.push(
+            originalLabels[i]
+        );
+
+        pieValues.push(
+            value
+        );
+
     }
 
+}
 
-    // ========================================
-    // 顏色
-    // ========================================
-    const colors = [
-        "#36A2EB",
-        "#FF6384",
-        "#FF9F40",
-        "#FFCD56",
-        "#4BC0C0",
-        "#9966FF",
-        "#C9CBCF",
-        "#2E86C1",
-        "#E74C3C",
-        "#28B463",
-        "#F39C12",
-        "#8E44AD",
-        "#17A589",
-        "#D35400"
-    ];
-   
 
-    // ========================================
-    // 計算總額
-    // ========================================
-    const total = values.reduce(
-        (sum, value) => sum + Number(value),
+const pieTotal =
+    pieValues.reduce(
+        (sum, value) =>
+            sum + Number(value),
         0
     );
 
 
-    const ctx =
-        document.getElementById("expensePieChart");
+
+// ======================================================
+// 圓餅圖顏色
+// ======================================================
+
+const pieColors = [
+
+    "#4e79a7",
+    "#f28e2b",
+    "#e15759",
+    "#76b7b2",
+    "#59a14f",
+    "#edc948",
+    "#b07aa1",
+    "#ff9da7",
+    "#9c755f",
+    "#bab0ac",
+    "#5f9ed1",
+    "#8cd17d",
+    "#b6992d",
+    "#d37295"
+
+];
 
 
-    Chart.register(ChartDataLabels);
 
+// ======================================================
+// 本月圓餅圖
+// ======================================================
 
-    new Chart(ctx, {
+new Chart(
+    document.getElementById(
+        "expensePieChart"
+    ),
+    {
 
         type: "pie",
 
         data: {
 
-            labels: labels,
+            labels:
+                pieLabels,
 
             datasets: [{
 
-                label: "支出金額",
-
-                data: values,
+                data:
+                    pieValues,
 
                 backgroundColor:
-                    colors.slice(0, values.length),
+                    pieColors.slice(
+                        0,
+                        pieValues.length
+                    ),
 
-                borderColor: "#FFFFFF",
+                borderColor:
+                    "#ffffff",
 
-                borderWidth: 2
+                borderWidth:
+                    2
 
             }]
 
@@ -209,80 +653,88 @@
 
         options: {
 
-            responsive: true,
+            responsive:
+                true,
 
-            maintainAspectRatio: false,
+            maintainAspectRatio:
+                false,
+
 
             plugins: {
-
-                title: {
-    display: true,
-
-    text:
-        "{{ start_date }}"
-        + " ～ "
-        + "{{ end_date }}"
-        + " 各項支出比例",
-
-    font: {
-        size: 20
-    }
-},
 
 
                 legend: {
 
-                    position: "right",
+                    position:
+                        "right",
 
                     labels: {
 
+                        boxWidth:
+                            15,
+
+                        padding:
+                            14,
+
                         font: {
-                            size: 15
+                            size: 13
                         },
 
-                        generateLabels: function(chart) {
 
-                            const data = chart.data;
+                        generateLabels:
+                            function(chart) {
 
-                            return data.labels.map(
-                                function(label, i) {
+                                const data =
+                                    chart.data;
 
-                                    const value =
-                                        Number(
-                                            data.datasets[0].data[i]
-                                        );
+                                return data.labels.map(
+                                    function(label, i) {
 
-                                    const percentage =
-                                        total > 0
-                                        ? (
-                                            value / total * 100
-                                          ).toFixed(1)
-                                        : "0.0";
+                                        const value =
+                                            Number(
+                                                data
+                                                .datasets[0]
+                                                .data[i]
+                                            );
 
-                                    return {
+                                        const percent =
+                                            pieTotal > 0
 
-                                        text:
-                                            label
-                                            + "  NT$ "
-                                            + value.toLocaleString()
-                                            + " ("
-                                            + percentage
-                                            + "%)",
+                                            ? (
+                                                value /
+                                                pieTotal *
+                                                100
+                                              ).toFixed(1)
 
-                                        fillStyle:
-                                            colors[i],
+                                            : "0.0";
 
-                                        strokeStyle:
-                                            colors[i],
 
-                                        index: i
+                                        return {
 
-                                    };
+                                            text:
+                                                label
+                                                + " NT$ "
+                                                + value
+                                                  .toLocaleString()
+                                                + " ("
+                                                + percent
+                                                + "%)",
 
-                                }
-                            );
+                                            fillStyle:
+                                                pieColors[i],
 
-                        }
+                                            strokeStyle:
+                                                pieColors[i],
+
+                                            index:
+                                                i
+
+                                        };
+
+                                    }
+                                );
+
+                            }
 
                     }
 
@@ -293,521 +745,141 @@
 
                     callbacks: {
 
-                        label: function(context) {
+                        label:
+                            function(context) {
 
-                            const value =
-                                Number(context.raw);
+                                const value =
+                                    Number(
+                                        context.raw
+                                    );
 
-                            const percentage =
-                                total > 0
-                                ? (
-                                    value / total * 100
-                                  ).toFixed(1)
-                                : "0.0";
+                                const percent =
+                                    pieTotal > 0
 
-                            return (
-                                context.label
-                                + "：NT$ "
-                                + value.toLocaleString()
-                                + "（"
-                                + percentage
-                                + "%）"
-                            );
+                                    ? (
+                                        value /
+                                        pieTotal *
+                                        100
+                                      ).toFixed(1)
 
-                        }
+                                    : "0.0";
+
+
+                                return (
+                                    context.label
+                                    + "：NT$ "
+                                    + value
+                                      .toLocaleString()
+                                    + "（"
+                                    + percent
+                                    + "%）"
+                                );
+
+                            }
 
                     }
 
                 },
 
 
+                // ==========================
+                // 圓餅圖內文字
+                // ==========================
+
                 datalabels: {
 
-                    color: "#000",
+                    color:
+                        "#111",
+
+                    textAlign:
+                        "center",
 
                     font: {
 
-                        weight: "bold",
+                        weight:
+                            "bold",
 
-                        size: 14
-
-                    },
-
-                    display: function(context) {
-
-                        const value =
-                            Number(
-                                context.dataset.data[
-                                    context.dataIndex
-                                ]
-                            );
-
-                        const percentage =
-                            total > 0
-                            ? value / total * 100
-                            : 0;
-
-                        return percentage >= 5;
+                        size:
+                            15
 
                     },
 
-                    formatter: function(value) {
 
-                        value = Number(value);
+                    // 小於 6% 不直接顯示
+                    display:
+                        function(context) {
 
-                        const percentage =
-                            total > 0
-                            ? (
-                                value / total * 100
-                              ).toFixed(1)
-                            : "0.0";
+                            const value =
+                                Number(
+                                    context
+                                    .dataset
+                                    .data[
+                                        context
+                                        .dataIndex
+                                    ]
+                                );
 
-                        return (
-                            "NT$ "
-                            + value.toLocaleString()
-                            + "\n"
-                            + percentage
-                            + "%"
-                        );
+                            const percent =
+                                pieTotal > 0
 
-                    }
+                                ? value /
+                                  pieTotal *
+                                  100
 
-                }
+                                : 0;
 
-            }
-
-        }
-
-    });
-
-   // ========================================
-// 每月支出趨勢折線圖
-// ========================================
-
-const trendLabels =
-    {{ trend_labels | tojson }};
-
-const trendValues =
-    {{ trend_values | tojson }};
-
-
-const trendCtx =
-    document.getElementById("monthlyTrendChart");
-
-
-new Chart(trendCtx, {
-
-    type: "line",
-
-    data: {
-
-        labels: trendLabels,
-
-        datasets: [{
-
-            label: "每月總支出",
-
-            data: trendValues,
-
-            borderWidth: 3,
-
-            tension: 0.2,
-
-            fill: false
-
-        }]
-
-    },
-
-    options: {
-
-        responsive: true,
-
-        maintainAspectRatio: false,
-
-        plugins: {
-
-            title: {
-
-                display: true,
-
-                text: "每月支出趨勢",
-
-                font: {
-                    size: 20
-                }
-
-            },
-
-            tooltip: {
-
-                callbacks: {
-
-                    label: function(context) {
-
-                        const value =
-                            Number(context.raw);
-
-                        return (
-                            "總支出：NT$ "
-                            + value.toLocaleString()
-                        );
-
-                    }
-
-                }
-
-            },
-
-            datalabels: {
-
-                align: "top",
-
-                anchor: "end",
-
-                color: "#000",
-
-                font: {
-
-                    weight: "bold",
-
-                    size: 13
-
-                },
-
-                formatter: function(value) {
-
-                    return (
-                        "NT$ "
-                        + Number(value).toLocaleString()
-                    );
-
-                }
-
-            }
-
-        },
-
-        scales: {
-
-            y: {
-
-                beginAtZero: true,
-
-                title: {
-
-                    display: true,
-
-                    text: "支出金額（NT$）"
-
-                }
-
-            },
-
-            x: {
-
-                title: {
-
-                    display: true,
-
-                    text: "月份"
-
-                }
-
-            }
-
-        }
-
-    }
-
-});   
-
-// ========================================
-// 柏拉圖
-// ========================================
-
-// 先整理成物件
-let paretoData = [];
-
-for (let i = 0; i < labels.length; i++) {
-
-    paretoData.push({
-        label: labels[i],
-        value: Number(values[i])
-    });
-
-}
-
-
-// 由大到小排序
-paretoData.sort(
-    (a, b) => b.value - a.value
-);
-
-
-// 分離排序後的名稱與金額
-const paretoLabels =
-    paretoData.map(item => item.label);
-
-const paretoValues =
-    paretoData.map(item => item.value);
-
-
-// 計算總額
-const paretoTotal =
-    paretoValues.reduce(
-        (sum, value) => sum + value,
-        0
-    );
-
-
-// 計算累積百分比
-let runningTotal = 0;
-
-const cumulativePercentages =
-    paretoValues.map(function(value) {
-
-        runningTotal += value;
-
-        if (paretoTotal === 0) {
-            return 0;
-        }
-
-        return Number(
-            (
-                runningTotal /
-                paretoTotal *
-                100
-            ).toFixed(1)
-        );
-
-    });
-
-
-// 80% 基準線
-const eightyLine =
-    paretoLabels.map(() => 80);
-
-
-// ========================================
-// 建立柏拉圖
-// ========================================
-
-const paretoCtx =
-    document.getElementById("paretoChart");
-
-
-new Chart(paretoCtx, {
-
-    data: {
-
-        labels: paretoLabels,
-
-        datasets: [
-
-            {
-                type: "bar",
-
-                label: "支出金額",
-
-                data: paretoValues,
-
-                yAxisID: "y",
-
-                borderWidth: 1,
-
-                datalabels: {
-
-                    anchor: "end",
-
-                    align: "top",
-
-                    color: "#000",
-
-                    formatter: function(value) {
-
-                        return (
-                            "NT$ "
-                            + Number(value).toLocaleString()
-                        );
-
-                    }
-
-                }
-
-            },
-
-            {
-                type: "line",
-
-                label: "累積百分比",
-
-                data: cumulativePercentages,
-
-                yAxisID: "y1",
-
-                borderWidth: 3,
-
-                tension: 0.2,
-
-                datalabels: {
-
-                    anchor: "end",
-
-                    align: "top",
-
-                    color: "#000",
-
-                    formatter: function(value) {
-
-                        return value + "%";
-
-                    }
-
-                }
-
-            },
-
-            {
-                type: "line",
-
-                label: "80% 基準線",
-
-                data: eightyLine,
-
-                yAxisID: "y1",
-
-                borderWidth: 2,
-
-                borderDash: [6, 6],
-
-                pointRadius: 0,
-
-                datalabels: {
-                    display: false
-                }
-
-            }
-
-        ]
-
-    },
-
-
-    options: {
-
-        responsive: true,
-
-        maintainAspectRatio: false,
-
-        interaction: {
-            mode: "index",
-            intersect: false
-        },
-
-        plugins: {
-
-            title: {
-
-                display: true,
-
-                text:
-                    "{{ start_date }}"
-                    + " ～ "
-                    + "{{ end_date }}"
-                    + " 支出柏拉圖",
-
-                font: {
-                    size: 20
-                }
-
-            },
-
-            tooltip: {
-
-                callbacks: {
-
-                    label: function(context) {
-
-                        if (context.dataset.label === "支出金額") {
 
                             return (
-                                "支出金額：NT$ "
-                                + Number(context.raw).toLocaleString()
+                                percent >= 6
                             );
 
-                        }
+                        },
 
-                        if (context.dataset.label === "累積百分比") {
+
+                    formatter:
+                        function(
+                            value,
+                            context
+                        ) {
+
+                            value =
+                                Number(value);
+
+                            const percent =
+                                pieTotal > 0
+
+                                ? (
+                                    value /
+                                    pieTotal *
+                                    100
+                                  ).toFixed(1)
+
+                                : "0.0";
+
+
+                            const label =
+                                context
+                                .chart
+                                .data
+                                .labels[
+                                    context
+                                    .dataIndex
+                                ];
+
 
                             return (
-                                "累積百分比："
-                                + context.raw
+                                label
+                                + "\n"
+                                + "NT$ "
+                                + value
+                                  .toLocaleString()
+                                + "\n"
+                                + percent
                                 + "%"
                             );
 
                         }
 
-                        return "80% 基準線";
-
-                    }
-
-                }
-
-            }
-
-        },
-
-
-        scales: {
-
-            x: {
-
-                title: {
-                    display: true,
-                    text: "支出項目"
-                }
-
-            },
-
-
-            y: {
-
-                beginAtZero: true,
-
-                position: "left",
-
-                title: {
-
-                    display: true,
-
-                    text: "支出金額（NT$）"
-
-                }
-
-            },
-
-
-            y1: {
-
-                beginAtZero: true,
-
-                min: 0,
-
-                max: 100,
-
-                position: "right",
-
-                title: {
-
-                    display: true,
-
-                    text: "累積百分比（%）"
-
-                },
-
-                grid: {
-                    drawOnChartArea: false
                 }
 
             }
@@ -815,208 +887,99 @@ new Chart(paretoCtx, {
         }
 
     }
+);
 
-});
+
 
 // ======================================================
-// 共用柏拉圖函式
+// 每月支出趨勢
 // ======================================================
 
-function createParetoChart(canvasId, inputLabels, inputValues, chartTitle) {
+new Chart(
+    document.getElementById(
+        "monthlyTrendChart"
+    ),
+    {
 
-    let data = [];
-
-    // 只留下金額 > 0
-    for (let i = 0; i < inputLabels.length; i++) {
-
-        const value = Number(inputValues[i]);
-
-        if (value > 0) {
-
-            data.push({
-                label: inputLabels[i],
-                value: value
-            });
-
-        }
-    }
-
-
-    // 金額由大到小排序
-    data.sort((a, b) => b.value - a.value);
-
-
-    const chartLabels =
-        data.map(item => item.label);
-
-    const chartValues =
-        data.map(item => item.value);
-
-
-    // 總金額
-    const total =
-        chartValues.reduce(
-            (sum, value) => sum + value,
-            0
-        );
-
-
-    // 累積百分比
-    let runningTotal = 0;
-
-    const cumulative = chartValues.map(function(value) {
-
-        runningTotal += value;
-
-        if (total === 0) {
-            return 0;
-        }
-
-        return Number(
-            (
-                runningTotal /
-                total *
-                100
-            ).toFixed(1)
-        );
-
-    });
-
-
-    // =====================================
-    // 80% 水平基準線
-    // =====================================
-    const eightyPercentLine =
-        chartLabels.map(() => 80);
-
-
-    const ctx =
-        document.getElementById(canvasId);
-
-
-    new Chart(ctx, {
+        type: "line",
 
         data: {
 
-            labels: chartLabels,
+            labels:
+                trendLabels,
 
-            datasets: [
+            datasets: [{
 
-                // 金額柱狀圖
-                {
-                    type: "bar",
+                label:
+                    "每月總支出",
 
-                    label: "支出金額",
+                data:
+                    trendValues,
 
-                    data: chartValues,
+                borderWidth:
+                    3,
 
-                    yAxisID: "y",
+                pointRadius:
+                    5,
 
-                    borderWidth: 1,
+                pointHoverRadius:
+                    7,
 
-                    datalabels: {
+                tension:
+                    0.25,
 
-                        anchor: "end",
+                fill:
+                    false
 
-                        align: "top",
-
-                        formatter: function(value) {
-
-                            return (
-                                "NT$ "
-                                + Number(value).toLocaleString()
-                            );
-
-                        }
-
-                    }
-
-                },
-
-
-                // 累積百分比
-                {
-                    type: "line",
-
-                    label: "累積百分比",
-
-                    data: cumulative,
-
-                    yAxisID: "y1",
-
-                    borderWidth: 3,
-
-                    tension: 0.2,
-
-                    datalabels: {
-
-                        anchor: "end",
-
-                        align: "top",
-
-                        formatter: function(value) {
-
-                            return value + "%";
-
-                        }
-
-                    }
-
-                },
-
-
-                // =========================
-                // 80% 水平線
-                // =========================
-                {
-                    type: "line",
-
-                    label: "80% 基準線",
-
-                    data: eightyPercentLine,
-
-                    yAxisID: "y1",
-
-                    borderWidth: 3,
-
-                    borderDash: [8, 6],
-
-                    pointRadius: 0,
-
-                    datalabels: {
-                        display: false
-                    }
-
-                }
-
-            ]
+            }]
 
         },
 
 
         options: {
 
-            responsive: true,
+            responsive:
+                true,
 
-            maintainAspectRatio: false,
-
-            interaction: {
-                mode: "index",
-                intersect: false
-            },
+            maintainAspectRatio:
+                false,
 
 
             plugins: {
 
-                title: {
+                legend: {
+                    display: true
+                },
 
-                    display: true,
 
-                    text: chartTitle,
+                datalabels: {
+
+                    anchor:
+                        "end",
+
+                    align:
+                        "top",
 
                     font: {
-                        size: 20
-                    }
+
+                        weight:
+                            "bold",
+
+                        size:
+                            12
+
+                    },
+
+                    formatter:
+                        function(value) {
+
+                            return (
+                                "NT$ "
+                                + Number(value)
+                                  .toLocaleString()
+                            );
+
+                        }
 
                 },
 
@@ -1025,40 +988,17 @@ function createParetoChart(canvasId, inputLabels, inputValues, chartTitle) {
 
                     callbacks: {
 
-                        label: function(context) {
-
-                            if (
-                                context.dataset.label
-                                === "支出金額"
-                            ) {
+                        label:
+                            function(context) {
 
                                 return (
-                                    "支出金額：NT$ "
+                                    "總支出：NT$ "
                                     + Number(
                                         context.raw
                                     ).toLocaleString()
                                 );
 
                             }
-
-
-                            if (
-                                context.dataset.label
-                                === "累積百分比"
-                            ) {
-
-                                return (
-                                    "累積百分比："
-                                    + context.raw
-                                    + "%"
-                                );
-
-                            }
-
-
-                            return "80% 基準線";
-
-                        }
 
                     }
 
@@ -1069,56 +1009,33 @@ function createParetoChart(canvasId, inputLabels, inputValues, chartTitle) {
 
             scales: {
 
+                y: {
+
+                    beginAtZero:
+                        true,
+
+                    title: {
+
+                        display:
+                            true,
+
+                        text:
+                            "支出金額（NT$）"
+
+                    }
+
+                },
+
                 x: {
 
                     title: {
 
-                        display: true,
+                        display:
+                            true,
 
-                        text: "支出項目"
+                        text:
+                            "月份"
 
-                    }
-
-                },
-
-
-                y: {
-
-                    beginAtZero: true,
-
-                    position: "left",
-
-                    title: {
-
-                        display: true,
-
-                        text: "支出金額（NT$）"
-
-                    }
-
-                },
-
-
-                y1: {
-
-                    beginAtZero: true,
-
-                    min: 0,
-
-                    max: 100,
-
-                    position: "right",
-
-                    title: {
-
-                        display: true,
-
-                        text: "累積百分比（%）"
-
-                    },
-
-                    grid: {
-                        drawOnChartArea: false
                     }
 
                 }
@@ -1127,41 +1044,507 @@ function createParetoChart(canvasId, inputLabels, inputValues, chartTitle) {
 
         }
 
-    });
+    }
+);
+
+
+
+// ======================================================
+// 共用柏拉圖函式
+// ======================================================
+
+function createParetoChart(
+    canvasId,
+    labels,
+    values,
+    title
+) {
+
+    const paretoData = [];
+
+
+    for (
+        let i = 0;
+        i < labels.length;
+        i++
+    ) {
+
+        const value =
+            Number(values[i]);
+
+        if (value > 0) {
+
+            paretoData.push({
+
+                label:
+                    labels[i],
+
+                value:
+                    value
+
+            });
+
+        }
+
+    }
+
+
+    // 大 → 小
+    paretoData.sort(
+        (a, b) =>
+            b.value - a.value
+    );
+
+
+    const sortedLabels =
+        paretoData.map(
+            item => item.label
+        );
+
+
+    const sortedValues =
+        paretoData.map(
+            item => item.value
+        );
+
+
+    const total =
+        sortedValues.reduce(
+            (sum, value) =>
+                sum + value,
+            0
+        );
+
+
+    // 累積百分比
+    let runningTotal = 0;
+
+
+    const cumulative =
+        sortedValues.map(
+            function(value) {
+
+                runningTotal += value;
+
+                return total > 0
+
+                    ? Number(
+                        (
+                            runningTotal /
+                            total *
+                            100
+                        ).toFixed(1)
+                      )
+
+                    : 0;
+
+            }
+        );
+
+
+    // 80% 水平線
+    const line80 =
+        sortedLabels.map(
+            () => 80
+        );
+
+
+    new Chart(
+        document.getElementById(
+            canvasId
+        ),
+        {
+
+            data: {
+
+                labels:
+                    sortedLabels,
+
+                datasets: [
+
+
+                    // 金額柱
+                    {
+
+                        type:
+                            "bar",
+
+                        label:
+                            "支出金額",
+
+                        data:
+                            sortedValues,
+
+                        yAxisID:
+                            "y",
+
+                        borderWidth:
+                            1,
+
+
+                        datalabels: {
+
+                            anchor:
+                                "end",
+
+                            align:
+                                "top",
+
+                            font: {
+
+                                weight:
+                                    "bold",
+
+                                size:
+                                    14
+
+                            },
+
+                            formatter:
+                                function(value) {
+
+                                    return (
+                                        "NT$ "
+                                        + Number(value)
+                                          .toLocaleString()
+                                    );
+
+                                }
+
+                        }
+
+                    },
+
+
+                    // 累積比例
+                    {
+
+                        type:
+                            "line",
+
+                        label:
+                            "累積百分比",
+
+                        data:
+                            cumulative,
+
+                        yAxisID:
+                            "y1",
+
+                        borderWidth:
+                            3,
+
+                        pointRadius:
+                            4,
+
+                        tension:
+                            0.15,
+
+
+                        datalabels: {
+
+                            anchor:
+                                "end",
+
+                            align:
+                                "top",
+
+                            font: {
+
+                                weight:
+                                    "bold",
+
+                                size:
+                                    11
+
+                            },
+
+                            formatter:
+                                function(value) {
+
+                                    return (
+                                        value
+                                        + "%"
+                                    );
+
+                                }
+
+                        }
+
+                    },
+
+
+                    // 80% 水平線
+                    {
+
+                        type:
+                            "line",
+
+                        label:
+                            "80% 基準線",
+
+                        data:
+                            line80,
+
+                        yAxisID:
+                            "y1",
+
+                        borderWidth:
+                            2,
+
+                        borderDash:
+                            [8, 6],
+
+                        pointRadius:
+                            0,
+
+                        datalabels: {
+
+                            display:
+                                false
+
+                        }
+
+                    }
+
+                ]
+
+            },
+
+
+            options: {
+
+                responsive:
+                    true,
+
+                maintainAspectRatio:
+                    false,
+
+
+                interaction: {
+
+                    mode:
+                        "index",
+
+                    intersect:
+                        false
+
+                },
+
+
+                plugins: {
+
+                    title: {
+
+                        display:
+                            true,
+
+                        text:
+                            title,
+
+                        font: {
+
+                            size:
+                                18
+
+                        }
+
+                    },
+
+
+                    tooltip: {
+
+                        callbacks: {
+
+                            label:
+                                function(context) {
+
+                                    if (
+                                        context
+                                        .dataset
+                                        .label
+                                        ===
+                                        "支出金額"
+                                    ) {
+
+                                        return (
+                                            "支出金額：NT$ "
+                                            + Number(
+                                                context.raw
+                                              )
+                                              .toLocaleString()
+                                        );
+
+                                    }
+
+
+                                    if (
+                                        context
+                                        .dataset
+                                        .label
+                                        ===
+                                        "累積百分比"
+                                    ) {
+
+                                        return (
+                                            "累積百分比："
+                                            + context.raw
+                                            + "%"
+                                        );
+
+                                    }
+
+
+                                    return (
+                                        "80% 基準線"
+                                    );
+
+                                }
+
+                        }
+
+                    }
+
+                },
+
+
+                scales: {
+
+                    x: {
+
+                        title: {
+
+                            display:
+                                true,
+
+                            text:
+                                "支出項目"
+
+                        }
+
+                    },
+
+
+                    y: {
+
+                        beginAtZero:
+                            true,
+
+                        position:
+                            "left",
+
+                        title: {
+
+                            display:
+                                true,
+
+                            text:
+                                "支出金額（NT$）"
+
+                        }
+
+                    },
+
+
+                    y1: {
+
+                        beginAtZero:
+                            true,
+
+                        min:
+                            0,
+
+                        max:
+                            100,
+
+                        position:
+                            "right",
+
+                        title: {
+
+                            display:
+                                true,
+
+                            text:
+                                "累積百分比（%）"
+
+                        },
+
+                        grid: {
+
+                            drawOnChartArea:
+                                false
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+    );
 
 }
 
-// ======================================================
-// 第二張：7、8、9 月累積柏拉圖
-// ======================================================
 
-const threeMonthValues =
-    {{ three_month_values | tojson }};
+
+// ======================================================
+// 第一張：本月柏拉圖
+// ======================================================
 
 createParetoChart(
-    "threeMonthParetoChart",
+
+    "currentParetoChart",
+
     originalLabels,
-    threeMonthValues,
-    "2026年7、8、9月累積支出柏拉圖"
+
+    originalValues,
+
+    "{{ start_date }} ～ {{ end_date }} 本月支出柏拉圖"
+
 );
+
+
+
+// ======================================================
+// 第二張：7～9 月累積柏拉圖
+// ======================================================
+
+createParetoChart(
+
+    "threeMonthParetoChart",
+
+    originalLabels,
+
+    threeMonthValues,
+
+    "2026/07/01 ～ {{ end_date }} 累積支出柏拉圖"
+
+);
+
 
 
 // ======================================================
 // 第三張：全部期間柏拉圖
 // ======================================================
 
-const allPeriodValues =
-    {{ all_period_values | tojson }};
-
 createParetoChart(
+
     "allPeriodParetoChart",
+
     originalLabels,
+
     allPeriodValues,
-    "全部期間累積支出柏拉圖"
+
+    "{{ all_start_date }} ～ {{ all_end_date }} 全期間支出柏拉圖"
+
 );
-    
+
 
 </script>
+
 
 </body>
 
