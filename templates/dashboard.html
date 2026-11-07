@@ -294,6 +294,12 @@
 
         }
 
+
+        /* 每月趨勢：期間切換與顯示 */
+        .trend-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:10px; margin:0 0 12px; font-size:15px; }
+        .trend-toolbar select { padding:7px 10px; border:1px solid #c5d3e2; border-radius:7px; background:#fff; color:#263b53; font:inherit; }
+        .trend-period { color:#68788a; font-size:13px; }
+        @media (max-width:600px) { .trend-toolbar { font-size:13px; } .trend-period { width:100%; text-align:center; } }
     </style>
 
 </head>
@@ -394,6 +400,15 @@
                 每月支出趨勢
             </div>
 
+            <div class="trend-toolbar">
+                <label for="trendRange">顯示期間：</label>
+                <select id="trendRange" aria-label="每月支出趨勢顯示期間">
+                    <option value="12" selected>最近 12 個月</option>
+                    <option value="24">最近 24 個月</option>
+                    <option value="all">全部期間</option>
+                </select>
+                <span id="trendPeriod" class="trend-period"></span>
+            </div>
             <div class="chart-box">
 
                 <canvas id="monthlyTrendChart"></canvas>
@@ -892,161 +907,76 @@ new Chart(
 
 
 // ======================================================
-// 每月支出趨勢
+// 每月支出趨勢（預設最近 12 個月，可切換 24 個月或全部）
+// 僅在前端篩選，不更動 Flask、SQL 或 MySQL 資料。
 // ======================================================
 
-new Chart(
-    document.getElementById(
-        "monthlyTrendChart"
-    ),
-    {
-
-        type: "line",
-
-        data: {
-
-            labels:
-                trendLabels,
-
-            datasets: [{
-
-                label:
-                    "每月總支出",
-
-                data:
-                    trendValues,
-
-                borderWidth:
-                    3,
-
-                pointRadius:
-                    5,
-
-                pointHoverRadius:
-                    7,
-
-                tension:
-                    0.25,
-
-                fill:
-                    false
-
-            }]
-
-        },
-
-
-        options: {
-
-            responsive:
-                true,
-
-            maintainAspectRatio:
-                false,
-
-
-            plugins: {
-
-                legend: {
-                    display: true
-                },
-
-
-                datalabels: {
-
-                    anchor:
-                        "end",
-
-                    align:
-                        "top",
-
-                    font: {
-
-                        weight:
-                            "bold",
-
-                        size:
-                            12
-
-                    },
-
-                    formatter:
-                        function(value) {
-
-                            return (
-                                "NT$ "
-                                + Number(value)
-                                  .toLocaleString()
-                            );
-
-                        }
-
-                },
-
-
-                tooltip: {
-
-                    callbacks: {
-
-                        label:
-                            function(context) {
-
-                                return (
-                                    "總支出：NT$ "
-                                    + Number(
-                                        context.raw
-                                    ).toLocaleString()
-                                );
-
-                            }
-
+const trendAllLabels = Array.isArray(trendLabels) ? trendLabels : [];
+const trendAllValues = Array.isArray(trendValues) ? trendValues.map(Number) : [];
+const trendChart = new Chart(document.getElementById("monthlyTrendChart"), {
+    type: "line",
+    data: {
+        labels: [],
+        datasets: [{
+            label: "每月總支出",
+            data: [],
+            borderColor: "#2789d7",
+            backgroundColor: "#2789d7",
+            borderWidth: 2.5,
+            pointRadius: 3,
+            pointHoverRadius: 6,
+            tension: 0.2,
+            fill: false,
+            spanGaps: false
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+            legend: { display: true, labels: { boxWidth: 16 } },
+            // 取消趨勢圖的每點金額標籤；保留其他圖表原有標籤。
+            datalabels: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return "總支出：NT$ " + Number(context.raw).toLocaleString("zh-TW");
                     }
-
                 }
-
-            },
-
-
-            scales: {
-
-                y: {
-
-                    beginAtZero:
-                        true,
-
-                    title: {
-
-                        display:
-                            true,
-
-                        text:
-                            "支出金額（NT$）"
-
-                    }
-
-                },
-
-                x: {
-
-                    title: {
-
-                        display:
-                            true,
-
-                        text:
-                            "月份"
-
-                    }
-
-                }
-
             }
-
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: { display: true, text: "支出金額（NT$）" },
+                ticks: { callback: value => "NT$ " + Number(value).toLocaleString("zh-TW"), maxTicksLimit: 7 }
+            },
+            x: {
+                title: { display: true, text: "月份" },
+                ticks: { maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 12 }
+            }
         }
-
     }
-);
+});
 
+function updateTrendRange() {
+    const range = document.getElementById("trendRange").value;
+    const count = range === "all" ? trendAllLabels.length : Number(range);
+    const first = Math.max(0, trendAllLabels.length - count);
+    const labels = trendAllLabels.slice(first);
+    const values = trendAllValues.slice(first);
+    trendChart.data.labels = labels;
+    trendChart.data.datasets[0].data = values;
+    // 長期間減少資料點，避免線條與日期過於密集。
+    trendChart.data.datasets[0].pointRadius = labels.length > 36 ? 0 : (labels.length > 18 ? 2 : 4);
+    trendChart.update();
+    const period = document.getElementById("trendPeriod");
+    period.textContent = labels.length ? labels[0] + " ～ " + labels[labels.length - 1] + "（" + labels.length + " 個月）" : "目前無資料";
+}
+
+document.getElementById("trendRange").addEventListener("change", updateTrendRange);
+updateTrendRange();
 
 
 // ======================================================

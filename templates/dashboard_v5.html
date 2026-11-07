@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>個人消費記帳及統計｜年度分析 V5</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f0f4fa;color:#173453;font-family:Arial,'Microsoft JhengHei',sans-serif}
+.wrap{max-width:1160px;margin:24px auto;padding:0 18px}h1{text-align:center;font-size:27px}
+.panel{background:white;border-radius:14px;padding:23px;box-shadow:0 3px 16px #1c3d5912;margin:18px 0}
+.filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+label{display:block;font-weight:bold;margin-bottom:8px}select,button{width:100%;padding:11px;border:1px solid #b9c7d8;border-radius:7px;background:white;font-size:16px}
+button{background:#1768b4;color:white;cursor:pointer;border:0}.stats{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.amount{font-size:34px;color:#1768b4;font-weight:bold}.sub{color:#64748b;font-size:14px}.chart-box{height:470px;position:relative}
+.notice{background:#fff5dc;padding:10px;border-radius:8px;margin-top:10px}.links a{margin-right:16px;color:#1768b4}
+.summary{width:100%;border-collapse:collapse;margin-top:20px}.summary th,.summary td{padding:9px 12px;border-bottom:1px solid #e2e8f0;text-align:left}.summary td:nth-child(2){text-align:right;font-variant-numeric:tabular-nums}
+@media(max-width:760px){.filters{grid-template-columns:repeat(2,minmax(0,1fr))}.chart-box{height:390px}h1{font-size:22px}}
+</style>
+</head>
+<body><main class="wrap">
+<nav class="links"><a href="/dashboard">← 原 Dashboard</a><a href="/dashboard-v4">年度分析 V4</a></nav>
+<h1>個人消費記帳及統計｜年度分析 V5</h1>
+<section class="panel">
+<form method="get" action="{{ url_for('dashboard_v5.dashboard_v5') }}" class="filters">
+<div><label for="year">年度</label><select id="year" name="year">{% for y in years %}<option value="{{y}}" {% if y==year %}selected{% endif %}>{{y}} 年</option>{% endfor %}</select></div>
+<div><label for="category">消費分類</label><select id="category" name="category"><option value="全部分類" {% if category=='全部分類' %}selected{% endif %}>全部分類</option>{% for c in categories %}<option value="{{c}}" {% if category==c %}selected{% endif %}>{{c}}</option>{% endfor %}</select></div>
+<div><label for="chart">圖表</label><select id="chart" name="chart"><option value="line" {% if chart=='line' %}selected{% endif %}>折線圖</option><option value="bar" {% if chart=='bar' %}selected{% endif %}>長條圖</option><option value="pie" {% if chart=='pie' %}selected{% endif %}>圓餅圖</option><option value="pareto" {% if chart=='pareto' %}selected{% endif %}>柏拉圖</option></select></div>
+<div><label>&nbsp;</label><button type="submit">查詢統計</button></div>
+</form></section>
+<section class="panel"><div class="stats"><div><div class="sub">{{year}} 年｜{{category}}｜選取範圍累計</div><div class="amount">NT$ {{'{:,}'.format(selected_total)}}</div><div class="sub">全分類年度總支出：NT$ {{'{:,}'.format(year_total)}}</div></div><div><div class="sub">資料筆數：{{row_count}} 筆</div><div class="sub">統計期間：{{year}}/01/01～{{year}}/12/31</div></div></div>
+{% if row_count == 0 %}<div class="notice">本年度尚無資料，圖表中的零值不代表全年支出為零。</div>{% endif %}
+{% if chart in ['pie','pareto'] and category!='全部分類' %}<div class="notice">圓餅圖及柏拉圖為「全年各分類比較」，因此顯示所有分類；上方選取範圍累計仍是「{{category}}」。</div>{% endif %}
+</section>
+<section class="panel"><h2 id="chartTitle"></h2><div class="chart-box"><canvas id="expenseChart" role="img" aria-label="年度消費統計圖"></canvas></div>
+<p class="sub" id="pieLabelNote" style="display:none">圓餅圖直接標示占比達 5% 的分類名稱、金額及百分比；其他分類請查看右側圖例、滑鼠提示及下方明細表。</p><p class="sub">資料來源：MySQL expense_data。折線圖、長條圖顯示各月份支出；圓餅圖、柏拉圖顯示全年分類金額。無資料月份以 0 表示。</p></section>
+{% if chart in ['pie','pareto'] %}
+<section class="panel"><h2>年度各分類支出明細</h2><table class="summary"><thead><tr><th>分類</th><th>金額（NT$）</th><th>占比</th></tr></thead><tbody>
+{% for i in range(categories|length) %}{% if category_totals[i] > 0 %}<tr><td>{{categories[i]}}</td><td>{{'{:,}'.format(category_totals[i])}}</td><td>{{'%.2f' % (category_totals[i] / year_total * 100 if year_total else 0)}}%</td></tr>{% endif %}{% endfor %}
+<tr><th>總計</th><th style="text-align:right">{{'{:,}'.format(year_total)}}</th><th>100%（有資料時）</th></tr>
+</tbody></table></section>
+{% endif %}
+</main>
+<script>
+const year={{year|tojson}}, category={{category|tojson}}, chartType={{chart|tojson}};
+const categoryLabels={{categories|tojson}}, categoryTotals={{category_totals|tojson}};
+const monthValues={{month_values|tojson}};
+const months=Array.from({length:12},(_,i)=>`${i+1} 月`);
+const colors=['#4477aa','#ee8866','#228833','#ccbb44','#66ccee','#aa3377','#bbbbbb','#332288','#ddcc77','#117733','#cc6677','#88ccee','#999933','#882255'];
+const fmt=v=>'NT$ '+Number(v).toLocaleString('zh-TW');
+const title=document.getElementById('chartTitle');
+const options={responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'},tooltip:{callbacks:{label:c=>`${c.dataset.label||c.label}：${fmt(c.parsed.y ?? c.parsed)}`}}}};
+
+// 圓餅圖主要分類標籤：不依賴額外 CDN，避免小扇形文字擠在一起。
+const pieLabelsPlugin = {
+ id: 'pieMajorLabels',
+ afterDatasetsDraw(chart, args, pluginOptions) {
+  if (chart.config.type !== 'pie') return;
+  const dataset = chart.data.datasets[0];
+  const values = dataset.data.map(Number);
+  const total = values.reduce((a,b)=>a+b,0);
+  if (!total) return;
+  const meta = chart.getDatasetMeta(0);
+  const ctx = chart.ctx;
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  meta.data.forEach((arc, i) => {
+   const pct = values[i] / total * 100;
+   if (pct < 5) return; // 小項目由圖例、明細表及滑鼠提示提供
+   const {x, y, startAngle, endAngle, outerRadius, innerRadius} =
+      arc.getProps(['x','y','startAngle','endAngle','outerRadius','innerRadius'], true);
+   const angle = (startAngle + endAngle) / 2;
+   const radius = innerRadius + (outerRadius-innerRadius)*0.61;
+   const px = x + Math.cos(angle)*radius;
+   const py = y + Math.sin(angle)*radius;
+   const lines = [chart.data.labels[i], fmt(values[i]), pct.toFixed(2)+'%'];
+   const fontSize = pct >= 10 ? 13 : 11;
+   const lineHeight = fontSize + 4;
+   ctx.font = 'bold '+fontSize+'px Arial, "Microsoft JhengHei", sans-serif';
+   ctx.lineWidth = 3;
+   ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+   ctx.fillStyle = '#173453';
+   lines.forEach((line, j) => {
+     const ly = py + (j-1)*lineHeight;
+     ctx.strokeText(line, px, ly);
+     ctx.fillText(line, px, ly);
+   });
+  });
+  ctx.restore();
+ }
+};
+
+let config;
+if(chartType==='line'||chartType==='bar'){
+ title.textContent=`${year} 年各月份${category}支出${chartType==='line'?'趨勢':'比較'}`;
+ config={type:chartType,data:{labels:months,datasets:[{label:'支出金額（NT$）',data:monthValues,borderColor:'#247fca',backgroundColor:'rgba(52,152,219,.45)',borderWidth:3,fill:chartType==='line',tension:.25,pointRadius:4}]},options:{...options,scales:{y:{beginAtZero:true,ticks:{callback:v=>fmt(v)}},x:{title:{display:true,text:'月份'}}}}};
+}else{
+ const items=categoryLabels.map((label,i)=>({label,value:Number(categoryTotals[i])})).filter(x=>x.value>0);
+ if(chartType==='pie'){
+  title.textContent=`${year} 年各分類支出圓餅圖`;
+  const sum=items.reduce((s,x)=>s+x.value,0);
+  document.getElementById('pieLabelNote').style.display='block';
+  config={type:'pie',data:{labels:items.map(x=>x.label),datasets:[{label:'支出金額',data:items.map(x=>x.value),backgroundColor:items.map((_,i)=>colors[i%colors.length]),borderColor:'#fff',borderWidth:2}]},options:{...options,plugins:{...options.plugins,legend:{position:'right'},tooltip:{callbacks:{label:c=>`${c.label}：${fmt(c.raw)}（${sum?(c.raw/sum*100).toFixed(2):'0.00'}%）`}}}},plugins:[pieLabelsPlugin]};
+ }else{
+  title.textContent=`${year} 年各分類支出柏拉圖（含 80% 參考線）`;
+  items.sort((a,b)=>b.value-a.value);
+  const sum=items.reduce((s,x)=>s+x.value,0);let run=0;
+  const cumulative=items.map(x=>{run+=x.value;return sum?Number((run/sum*100).toFixed(2)):0});
+  config={data:{labels:items.map(x=>x.label),datasets:[
+   {type:'bar',label:'支出金額',data:items.map(x=>x.value),yAxisID:'y',backgroundColor:'#4d91c6'},
+   {type:'line',label:'累積百分比',data:cumulative,yAxisID:'y1',borderColor:'#e07934',backgroundColor:'#e07934',borderWidth:3,pointRadius:4,tension:.1},
+   {type:'line',label:'80% 參考線',data:items.map(()=>80),yAxisID:'y1',borderColor:'#b33b55',borderDash:[7,5],borderWidth:2,pointRadius:0}
+  ]},options:{...options,interaction:{mode:'index',intersect:false},plugins:{...options.plugins,tooltip:{callbacks:{label:c=>c.dataset.yAxisID==='y'?`${c.dataset.label}：${fmt(c.raw)}`:`${c.dataset.label}：${c.raw}%`}}},scales:{y:{position:'left',beginAtZero:true,ticks:{callback:v=>fmt(v)}},y1:{position:'right',min:0,max:100,ticks:{callback:v=>v+'%'},grid:{drawOnChartArea:false}},x:{title:{display:true,text:'支出分類'}}}}};
+ }
+}
+new Chart(document.getElementById('expenseChart'),config);
+</script></body></html>

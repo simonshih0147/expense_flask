@@ -7,6 +7,16 @@ load_dotenv()
 
 app = Flask(__name__)
 
+# C方案：新增自動化記帳功能
+from automation import bp as automation_bp
+app.register_blueprint(automation_bp)
+
+from dashboard_v4 import dashboard_v4_bp
+app.register_blueprint(dashboard_v4_bp)
+
+from dashboard_v5 import bp as dashboard_v5_bp
+app.register_blueprint(dashboard_v5_bp)
+
 
 # ==============================
 # MySQL 資料庫連線
