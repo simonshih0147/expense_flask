@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>個人消費｜跨年趨勢 V5.3</title><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f0f4fa;color:#173453;font-family:'Microsoft JhengHei',Arial,sans-serif}
+main{max-width:1200px;margin:28px auto;padding:0 18px}h1{text-align:center;font-size:28px}.panel{background:white;border-radius:14px;padding:24px;margin:18px 0;box-shadow:0 3px 16px #1c3d5912}
+.filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end}label{display:block;font-weight:bold;margin-bottom:8px}select,input,button{width:100%;padding:10px;border:1px solid #b9c7d8;border-radius:7px;background:white;font-size:15px}button{background:#1768b4;color:white;border:0;cursor:pointer}.sub{font-size:14px;color:#64748b}.amount{font-size:32px;color:#1768b4;font-weight:bold}.chart-box{height:490px;position:relative}.links a{margin-right:16px;color:#1768b4}.stats{display:flex;gap:30px;justify-content:space-between;flex-wrap:wrap}.note{background:#fff7e5;padding:12px;border-radius:8px;margin-top:12px}h2{margin-top:0}
+@media(max-width:900px){.filters{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.chart-box{height:360px}.filters{grid-template-columns:1fr}}
+</style></head><body><main>
+<nav class="links"><a href="/dashboard">原 Dashboard</a><a href="/dashboard-v5">Dashboard V5.2</a></nav>
+<h1>個人消費記帳及統計｜跨年趨勢 V5.3</h1>
+<section class="panel"><form method="get" action="{{ url_for('dashboard_v53.dashboard_v53') }}" class="filters">
+<div><label for="category">消費項目（趨勢圖用）</label><select name="category" id="category"><option value="全部分類" {% if category=='全部分類' %}selected{% endif %}>全部分類</option>{% for c in categories %}<option value="{{c}}" {% if c==category %}selected{% endif %}>{{c}}</option>{% endfor %}</select></div>
+<div><label for="granularity">統計單位</label><select name="granularity" id="granularity"><option value="year" {% if granularity=='year' %}selected{% endif %}>跨年度（年）</option><option value="month" {% if granularity=='month' %}selected{% endif %}>跨年月（月）</option><option value="day" {% if granularity=='day' %}selected{% endif %}>跨年月日（日）</option></select></div>
+<div><label for="chart_type">圖表選擇</label><select name="chart_type" id="chart_type"><option value="line" {% if chart_type=='line' %}selected{% endif %}>折線圖</option><option value="bar" {% if chart_type=='bar' %}selected{% endif %}>直條圖</option><option value="area" {% if chart_type=='area' %}selected{% endif %}>面積圖</option><option value="pie" {% if chart_type=='pie' %}selected{% endif %}>圓餅圖（期間占比）</option><option value="pareto" {% if chart_type=='pareto' %}selected{% endif %}>柏拉圖（消費項目排序）</option></select></div>
+<div><label for="start">起始日期</label><input type="date" id="start" name="start" value="{{start}}" required></div>
+<div><label for="end">結束日期</label><input type="date" id="end" name="end" value="{{end}}" required></div>
+<div><label>&nbsp;</label><button type="submit">查詢趨勢</button></div>
+</form></section>
+<section class="panel"><div class="stats"><div><div class="sub">{% if chart_type=='pareto' %}全部消費項目{% else %}{{category}}{% endif %}｜{{start}} ～ {{end}}</div><div class="amount">NT$ {{'{:,}'.format(pareto_amounts|sum|int if chart_type=='pareto' else total)}}</div></div><div><div class="sub">資料筆數：{{row_count}} 筆</div><div class="sub">圖表資料點：{% if chart_type=='pareto' %}{{pareto_labels|length}} 類{% else %}{{labels|length}} 個{% endif %}</div></div></div>
+{% if row_count==0 %}<div class="note">選取期間沒有資料，圖表顯示的零值不代表實際支出為零。</div>{% endif %}
+{% if latest_period %}<div class="note">提醒：最後一個月可能尚未結束，請勿直接與完整月份比較。</div>{% endif %}
+</section>
+<section class="panel"><h2>{% if chart_type=='pareto' %}全部消費項目｜分類支出柏拉圖{% else %}{{category}}｜{% if granularity=='year' %}跨年度{% elif granularity=='month' %}跨年月{% else %}每日{% endif %}支出趨勢｜{{ {'line':'折線圖','bar':'直條圖','area':'面積圖','pie':'圓餅圖'}[chart_type] }}{% endif %}</h2>
+{% if chart_type=='pareto' %}<div class="note">柏拉圖統計起始日至結束日之間所有消費分類的合計金額，依金額由高至低排序，並顯示累積百分比與 80% 基準線。選擇柏拉圖時，「消費項目」及「統計單位」不影響分類統計；只使用日期範圍。</div>{% endif %}
+{% if chart_type=='pie' and labels|length > 36 %}<div class="note">圓餅圖目前有 {{labels|length}} 個期間，為避免過度擁擠，請縮短日期範圍至 36 個期間以內，或選擇折線圖／直條圖。</div>{% endif %}
+<div class="chart-box"><canvas id="trendChart" aria-label="支出趨勢圖" role="img"></canvas></div><p class="sub">滑鼠移至圖形查看金額；圓餅圖代表各期間的支出占比；柏拉圖則比較不同消費項目。缺少記帳紀錄的期間以 0 顯示；長期每日資料較密集，可縮短日期範圍。</p></section>
+</main><script>
+const labels={{labels|tojson}}, amounts={{amounts|tojson}}, granularity={{granularity|tojson}}, chartType={{chart_type|tojson}};
+const paretoLabels={{pareto_labels|tojson}}, paretoAmounts={{pareto_amounts|tojson}};
+const fmt=n=>'NT$ '+Number(n).toLocaleString('zh-TW');
+const isPie=chartType==='pie';
+const isPareto=chartType==='pareto';
+const canRender=!isPie || labels.length<=36;
+const palette=['#4e79a7','#f28e2b','#e15759','#76b7b2','#59a14f','#edc948','#b07aa1','#ff9da7','#9c755f','#bab0ac','#5f9ed1','#8cd17d'];
+const colors=labels.map((_,i)=>palette[i%palette.length]);
+const canvas=document.getElementById('trendChart');
+if(canRender){
+ if(isPareto){
+   const ranked=paretoLabels.map((period,i)=>({period,amount:Number(paretoAmounts[i]||0)}))
+     .filter(item=>item.amount>0)
+     .sort((a,b)=>b.amount-a.amount || a.period.localeCompare(b.period));
+   const sortedLabels=ranked.map(item=>item.period);
+   const sortedValues=ranked.map(item=>item.amount);
+   const total=sortedValues.reduce((a,b)=>a+b,0);
+   let running=0;
+   const cumulative=sortedValues.map(v=>{running+=v;return total>0?Number((running/total*100).toFixed(2)):0;});
+   const threshold=sortedLabels.map(()=>80);
+   const showPoints=sortedLabels.length<=40;
+   new Chart(canvas,{
+     data:{labels:sortedLabels,datasets:[
+       {type:'bar',label:'支出金額',data:sortedValues,yAxisID:'y',backgroundColor:'#4e79a7',borderWidth:1,order:2},
+       {type:'line',label:'累積百分比',data:cumulative,yAxisID:'y1',borderColor:'#e15759',backgroundColor:'#e15759',borderWidth:2.5,pointRadius:showPoints?3:0,pointHoverRadius:5,tension:.12,order:1},
+       {type:'line',label:'80% 基準線',data:threshold,yAxisID:'y1',borderColor:'#e6a23c',borderWidth:2,borderDash:[7,5],pointRadius:0,order:0}
+     ]},
+     options:{
+       responsive:true,maintainAspectRatio:false,
+       interaction:{mode:'index',intersect:false},
+       plugins:{legend:{position:'top'},tooltip:{callbacks:{label:c=>c.dataset.yAxisID==='y'
+         ?'支出金額：'+fmt(c.raw)
+         :c.dataset.label+'：'+Number(c.raw).toFixed(1)+'%'}}},
+       scales:{
+         x:{ticks:{autoSkip:true,maxTicksLimit:16,maxRotation:45},title:{display:true,text:'消費項目（依支出金額由大到小）'}},
+         y:{beginAtZero:true,position:'left',title:{display:true,text:'支出金額（NT$）'},ticks:{callback:v=>fmt(v)}},
+         y1:{min:0,max:100,position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'累積百分比（%）'},ticks:{callback:v=>v+'%'}}
+       }
+     }
+   });
+ }else{
+ const series={label:'支出金額',data:amounts,borderColor:isPie? '#ffffff':'#2586d1',backgroundColor:isPie?colors:(chartType==='bar'?'#4e79a7':'rgba(37,134,209,.16)'),borderWidth:isPie?1:2.5,pointRadius:labels.length>40?0:3,pointHoverRadius:5,tension:.18,fill:chartType==='area'};
+ const total=amounts.reduce((a,b)=>a+Number(b||0),0);
+ const options={responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:isPie,position:'right',labels:{boxWidth:12,font:{size:11}}},tooltip:{callbacks:{label:c=>{const v=isPie?Number(c.raw):Number(c.parsed.y);return '支出：'+fmt(v)+(isPie&&total>0?'（'+(v/total*100).toFixed(1)+'%）':'');}}}}};
+ if(!isPie){options.scales={x:{ticks:{autoSkip:true,maxTicksLimit:12,maxRotation:45},title:{display:true,text:granularity==='year'?'年度':granularity==='month'?'年月':'日期'}},y:{beginAtZero:true,ticks:{callback:v=>fmt(v)},title:{display:true,text:'支出金額（NT$）'}}};}
+ new Chart(canvas,{type:isPie?'pie':chartType==='bar'?'bar':'line',data:{labels,datasets:[series]},options});
+ }
+}else{canvas.style.display='none';}
+</script></body></html>

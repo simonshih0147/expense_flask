@@ -7,6 +7,12 @@ load_dotenv()
 
 app = Flask(__name__)
 
+# 一鍵備份表單使用簽章權杖；APP_SECRET_KEY 需由 .env 提供。
+app.secret_key = os.getenv("APP_SECRET_KEY") or os.urandom(32)
+
+from database_backup import bp as database_backup_bp
+app.register_blueprint(database_backup_bp)
+
 # C方案：新增自動化記帳功能
 from automation import bp as automation_bp
 app.register_blueprint(automation_bp)
@@ -16,6 +22,29 @@ app.register_blueprint(dashboard_v4_bp)
 
 from dashboard_v5 import bp as dashboard_v5_bp
 app.register_blueprint(dashboard_v5_bp)
+
+from dashboard_v53 import bp as dashboard_v53_bp
+app.register_blueprint(dashboard_v53_bp)
+# 保留原有 automation Blueprint，並自動找出可開啟的自動化操作頁。
+# 不假設 automation.py 的網址，避免新增錯誤連結。
+@app.context_processor
+def expose_automation_entry():
+    from flask import url_for
+    candidates = []
+    for rule in app.url_map.iter_rules():
+        if rule.endpoint.startswith('automation.') and 'GET' in rule.methods and not rule.arguments:
+            candidates.append(rule)
+    if not candidates:
+        return {'automation_entry_url': None}
+    # 優先選首頁／操作介面類路徑，避免連到資料下載或其他 GET 動作。
+    preferred = ('index', 'home', 'dashboard', 'page', 'automation')
+    def priority(rule):
+        name = rule.endpoint.rsplit('.', 1)[-1].lower()
+        return (0 if name in preferred else 1,
+                0 if any(x in name for x in ('index', 'home', 'dashboard', 'page')) else 1,
+                len(rule.rule))
+    candidates.sort(key=priority)
+    return {'automation_entry_url': url_for(candidates[0].endpoint)}
 
 
 # ==============================
@@ -34,6 +63,12 @@ def get_db_connection():
 # ==============================
 # 首頁
 # ==============================
+@app.route("/dashboard-center")
+def dashboard_center():
+    """V5.4 統一入口；沿用既有 V5.2 / V5.3 後端及資料查詢。"""
+    return render_template("dashboard_center.html")
+
+
 @app.route("/")
 def index():
     return render_template("index.html")
